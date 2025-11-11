@@ -211,7 +211,7 @@ graf_HC_TP_N <- ggplot(df3, aes(x = curso_media, y = n, fill = curso_media)) +
     plot.title = element_text(size = 16, face = "bold", hjust = 0.5)
   )
 
-ggsave(filename = "grafico_comparativo_media_2024_n.png", plot = graf_HC_TP_N, path = "02_output", width = 12, height = 7, dpi = 300, bg = "white")
+ggsave(filename = "grafico_comparativo_media_2024_n.png", plot = graf_HC_TP_N, path = "02_output", width = 12, height = 7, dpi = 300, bg = "white")  
 
 ```
 
