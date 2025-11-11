@@ -1,0 +1,217 @@
+---
+title: "Tarea_02"
+output: html_document
+date: "2025-11-10"
+---
+
+# 0. Cargar librerías
+
+```{r}
+library(tidyverse)
+library(stringr)
+library(stringi)
+library(knitr)
+library(kableExtra)
+library(ggplot2)
+
+```
+
+
+
+# 1. Importar base de datos
+```{r}
+df0 <- read_csv2(
+  file = "C:/Users/Marita Abbott/Documents/R/R Magister/Tareas/Tarea_02/00_data/20250212_Rendimiento_2024_20250131_WEB.csv",
+  col_select = c("MRUN", "NOM_REG_RBD_A", "NOM_COM_ALU", "RURAL_RBD", "COD_DEPE2", "COD_ENSE2", "COD_GRADO", "GEN_ALU", "PROM_GRAL", "ASISTENCIA", "SIT_FIN_R"),
+  locale = locale(decimal_mark = ",", 
+                  grouping_mark = ".", 
+                  encoding = "latin1")
+) |> 
+  distinct(MRUN, .keep_all = TRUE)
+```
+- En este paso importamos la base de datos con las columnas de interés. 
+- Nos aseguramos con la variable `MRUN`y la función`distinct`que solamente exista una observación por estudiante. Es decir, eliminamos los duplicados.
+
+
+# 2. Limpiar y cambiar nombres variables y formatos textos
+
+```{r}
+janitor::clean_names(df0)
+colnames(df0)
+
+df1 <- df0 |> 
+  rename(
+    region = NOM_REG_RBD_A,
+    comuna = NOM_COM_ALU,
+    rural_urbano = RURAL_RBD,
+    tipo_dependencia = COD_DEPE2,
+    nivel_enseñanza = COD_ENSE2,
+    curso = COD_GRADO,
+    run_estudiante = MRUN,
+    genero = GEN_ALU,
+    promedio = PROM_GRAL,
+    situacion_final = SIT_FIN_R) |> 
+   mutate(
+    across(
+      c(region, comuna),
+      ~ .x |> 
+      str_to_lower() |> 
+      stri_trans_general("Latin-ASCII") |> 
+      str_trim() |> 
+      str_squish()
+         ))
+
+head(df1)
+
+```
+
+# 3. Cambiar códigos de observaciones
+```{r}
+df2 <- df1 |> 
+  mutate(
+    tipo_dependencia = factor(
+      tipo_dependencia, 
+      levels = c(1, 2, 3, 4, 5),
+      labels = c("municipal",
+                 "particular subvencionado",
+                 "particular pagado",
+                 "corporacion admin. delegada",
+                 "servicio local de educación")
+    ),
+  rural_urbano = factor(
+      rural_urbano,
+      levels = c(0, 1),
+      labels = c("urbano",
+                 "rural")
+    ),
+  genero = factor(
+      genero, 
+      levels = c(0, 1, 2, 3),
+      labels = c("indefinido",
+                 "masculino",
+                 "femenino",
+                 "no binario")
+    ),
+  nivel_curso = case_when(
+    nivel_enseñanza == 2 & curso == 1 ~ "1° Básico",
+      nivel_enseñanza == 2 & curso == 2 ~ "2° Básico",
+      nivel_enseñanza == 2 & curso == 3 ~ "3° Básico",
+      nivel_enseñanza == 2 & curso == 4 ~ "4° Básico",
+      nivel_enseñanza == 2 & curso == 5 ~ "5° Básico",
+      nivel_enseñanza == 2 & curso == 6 ~ "6° Básico",
+      nivel_enseñanza == 2 & curso == 7 ~ "7° Básico",
+      nivel_enseñanza == 2 & curso == 8 ~ "8° Básico",
+
+      nivel_enseñanza == 5 ~ paste(curso, "° Medio HC"),
+      nivel_enseñanza == 7 ~ paste(curso, "° Medio TP"),
+
+      nivel_enseñanza == 3 ~ "Adultos Básica",
+      nivel_enseñanza == 6 ~ "Adultos Media HC",
+      nivel_enseñanza == 8 ~ "Adultos Media TP",
+
+      nivel_enseñanza == 4 ~ "Educación Especial",
+
+      TRUE ~ "Otro / Sin info"
+  ),
+  nivel_curso = factor(nivel_curso)
+  )
+
+head(df2)
+
+```
+
+
+# Crear variable de Tipo de Media: HC y TP
+```{r}
+df3 <- df2 |> 
+  mutate(
+    curso_media = case_when(
+      nivel_enseñanza %in% c(5, 6) ~ paste0(curso, "° Medio HC"),
+      nivel_enseñanza %in% c(7, 8) ~ paste0(curso, "° Medio TP"),
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  
+  # Filtrar solo Media (HC y TP)
+  filter(!is.na(curso_media)) %>%
+  count(curso_media) |> 
+  # Ordenar cursos
+  mutate(
+    curso_media = factor(curso_media,
+      levels = c("1° Medio HC", "1° Medio TP",
+                 "2° Medio HC", "2° Medio TP",
+                 "3° Medio HC", "3° Medio TP",
+                 "4° Medio HC", "4° Medio TP"))
+  )
+
+head(df3)
+```
+
+
+# Tablas de frecuencia
+
+```{r}
+df2 %>%
+  count(tipo_dependencia, name = "Total") %>%
+  mutate(`%` = round(Total / sum(Total) * 100, 1)) %>%
+  arrange(desc(Total)) %>%
+  kable(col.names = c("Tipo de Establecimiento según Dependencia", "Total", "%"))
+```
+
+# Otra tabla de frecuencias
+```{r}
+df2 %>%
+  count(nivel_curso, name = "Total") %>%
+  mutate(`%` = round(Total / sum(Total) * 100, 1)) %>%
+  arrange(desc(Total)) %>%
+  kable(col.names = c("Nivel y Curso", "Total", "%"))
+```
+
+
+# Otra tabla de frecuencia
+```{r}
+tabla_frec <- df3 %>%
+  count(curso_media) %>%
+  mutate(
+    porcentaje = round(n / sum(n) * 100, 1)
+  ) %>%
+  arrange(curso_media)
+
+kable(tabla_frec,
+      col.names = c("Curso", "N", "%"),
+      caption = "Distribución de estudiantes por curso") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+
+```
+
+# Gráfico
+
+```{r}
+graf_HC_TP_N <- ggplot(df3, aes(x = curso_media, y = n, fill = curso_media)) + 
+  geom_col(width = 0.5) + 
+  geom_text(aes(label = scales::comma(n)),
+            vjust = -0.5, size = 4, fontface = "bold") +
+  scale_fill_manual(values = c(
+    "1° Medio HC" = "lightgreen", "2° Medio HC" = "lightgreen",
+    "3° Medio HC" = "lightgreen", "4° Medio HC" = "lightgreen",
+    "1° Medio TP" = "orange", "2° Medio TP" = "orange",
+    "3° Medio TP" = "orange", "4° Medio TP" = "orange"
+  )) + 
+  labs(
+    title = "Distribución de estudiantes en Enseñanza Media por curso y tipo (2024)", 
+    x = "Curso",
+    y = "Número de estudiantes",
+    caption = "Elaboración propia con datos públicos del Centro de Estudios del Ministerio de Educación de Chile"
+  ) + 
+  scale_y_continuous(labels = scales::comma, expand = expansion(mult = c(0, 0.1))) +
+  theme_minimal(base_size = 8) +
+  theme(
+    legend.position = "none",
+    axis.text.x = element_text(angle = 45, hjust = 1, face = "bold"),
+    plot.title = element_text(size = 16, face = "bold", hjust = 0.5)
+  )
+
+ggsave(filename = "grafico_comparativo_media_2024_n.png", plot = graf_HC_TP_N, path = "02_output", width = 12, height = 7, dpi = 300, bg = "white")
+
+```
+
