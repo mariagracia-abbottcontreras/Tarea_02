@@ -92,6 +92,13 @@ df2 <- df1 |>
                  "femenino",
                  "no binario")
     ),
+  situacion_final = case_when(
+    situacion_final == "P" ~ "Promovido",
+    situacion_final == "R" ~ "Reprobado",
+    situacion_final == "Y" ~ "Retirado",
+    situacion_final == "T" ~ "Trasladado",
+    situacion_final == "" ~ "Sin informacion"
+  ),
   nivel_curso = case_when(
     nivel_enseñanza == 2 & curso == 1 ~ "1° Básico",
       nivel_enseñanza == 2 & curso == 2 ~ "2° Básico",
@@ -113,7 +120,7 @@ df2 <- df1 |>
 
       TRUE ~ "Otro / Sin info"
   ),
-  nivel_curso = factor(nivel_curso)
+  nivel_curso = factor(nivel_curso),
   )
 
 head(df2)
@@ -145,6 +152,54 @@ df3 <- df2 |>
   )
 
 head(df3)
+```
+
+# Otra tabla de frecuencia 
+
+```{r}
+sit_fin_dep <- df2 |> 
+  count(tipo_dependencia, situacion_final) |> 
+  group_by(tipo_dependencia) |> 
+  mutate(n_total = sum(n),
+         porcentaje = round(n / sum(n) * 100, 2)) |> 
+  ungroup() |> 
+  select(tipo_dependencia, situacion_final, n, porcentaje)
+
+
+kable(sit_fin_dep,
+      col.names = c("Dependencia", "Situación Final", "N", "%"),
+      caption = "Situación Final por Dependencia Administrativa (2024)") %>%
+  kable_styling(bootstrap_options = c("striped", "hover")) %>%
+  pack_rows(index = table(fct_inorder(sit_fin_dep$tipo_dependencia)), latex_gap_space = "0.5em")
+
+```
+# Gráfico
+```{r}
+ggplot(sit_fin_dep, aes(x = tipo_dependencia, y = porcentaje, fill = situacion_final)) +
+  geom_col(position = "fill", width = 0.7) +
+  geom_text(aes(label = ifelse(porcentaje >= 3, paste0(porcentaje, "%"), "")),
+            position = position_fill(vjust = 0.5), size = 3.5, color = "white", fontface = "bold") +
+  scale_y_continuous(labels = scales::percent_format()) +
+  scale_fill_manual(values = c(
+    "Promovido" = "#2E86AB",
+    "Reprobado" = "#A23B72",
+    "Retirado"  = "#F18F01",
+    "Trasladado" = "#C73E1D",
+    "Sin info"  = "#6B7280"
+  )) +
+  labs(
+    title = "Situación Final por Dependencia Administrativa",
+    subtitle = "Establecimientos funcionando | Año 2024 | Fuente: CEM Mineduc",
+    x = "Tipo de Dependencia",
+    y = "Porcentaje de estudiantes",
+    fill = "Situación Final"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "right"
+  )
 ```
 
 
