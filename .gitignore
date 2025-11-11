@@ -1,2 +1,2 @@
 "*.csv" 
-"00_data/*.csv" 
+"00_data/"   # Ignora toda la carpeta de datos
