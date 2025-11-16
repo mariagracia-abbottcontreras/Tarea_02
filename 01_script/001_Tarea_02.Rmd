@@ -21,12 +21,11 @@ library(ggplot2)
 # 1. Importar base de datos
 ```{r}
 df0 <- read_csv2(
-  file = "C:/Users/Marita Abbott/Documents/R/R Magister/Tareas/Tarea_02/00_data/20250212_Rendimiento_2024_20250131_WEB.csv",
-  col_select = c("MRUN", "NOM_REG_RBD_A", "NOM_COM_ALU", "RURAL_RBD", "COD_DEPE2", "COD_ENSE2", "COD_GRADO", "GEN_ALU", "PROM_GRAL", "ASISTENCIA", "SIT_FIN_R"),
-  locale = locale(decimal_mark = ",", 
-                  grouping_mark = ".", 
-                  encoding = "latin1")
+  file = "../00_data/20250212_Rendimiento_2024_20250131_WEB.csv",
+  col_select = c("MRUN", "ESTADO_ESTAB", "NOM_REG_RBD_A", "NOM_COM_ALU", "RURAL_RBD", "COD_DEPE2", "COD_ENSE2", "COD_GRADO", "GEN_ALU", "PROM_GRAL", "ASISTENCIA", "SIT_FIN_R"),
+  locale = locale(encoding = "UTF-8")
 ) |> 
+  filter(ESTADO_ESTAB == 1) |> 
   distinct(MRUN, .keep_all = TRUE)
 ```
 - En este paso importamos la base de datos con las columnas de interés. 
@@ -39,7 +38,9 @@ df0 <- read_csv2(
 janitor::clean_names(df0)
 colnames(df0)
 
+
 df1 <- df0 |> 
+  select("NOM_REG_RBD_A", "NOM_COM_ALU", "RURAL_RBD", "COD_DEPE2", "COD_ENSE2", "COD_GRADO", "GEN_ALU", "PROM_GRAL", "ASISTENCIA", "SIT_FIN_R") |> 
   rename(
     region = NOM_REG_RBD_A,
     comuna = NOM_COM_ALU,
@@ -47,9 +48,9 @@ df1 <- df0 |>
     tipo_dependencia = COD_DEPE2,
     nivel_enseñanza = COD_ENSE2,
     curso = COD_GRADO,
-    run_estudiante = MRUN,
     genero = GEN_ALU,
     promedio = PROM_GRAL,
+    porc_asistencia = ASISTENCIA,
     situacion_final = SIT_FIN_R) |> 
    mutate(
     across(
@@ -69,6 +70,12 @@ head(df1)
 ```{r}
 df2 <- df1 |> 
   mutate(
+    rural_urbano = factor(
+      rural_urbano,
+      levels = c(0, 1),
+      labels = c("urbano",
+                 "rural")
+    ),
     tipo_dependencia = factor(
       tipo_dependencia, 
       levels = c(1, 2, 3, 4, 5),
@@ -78,12 +85,17 @@ df2 <- df1 |>
                  "corporacion admin. delegada",
                  "servicio local de educación")
     ),
-  rural_urbano = factor(
-      rural_urbano,
-      levels = c(0, 1),
-      labels = c("urbano",
-                 "rural")
+    nivel_curso = case_when(
+      nivel_enseñanza == 2 & curso %in% 1:8 ~ paste0(curso, "° Básico"),
+      nivel_enseñanza %in% c(5, 6) ~ paste0(curso, "° Medio HC"),
+      nivel_enseñanza %in% c(7, 8) ~ paste0(curso, "° Medio TP"),
+      nivel_enseñanza == 3 ~ "Adultos Básica",
+      nivel_enseñanza == 6 ~ "Adultos Media HC",
+      nivel_enseñanza == 8 ~ "Adultos Media TP",
+      nivel_enseñanza == 4 ~ "Educación Especial",
+      TRUE ~ "Otro / Sin info"
     ),
+  nivel_curso = factor(nivel_curso),
   genero = factor(
       genero, 
       levels = c(0, 1, 2, 3),
@@ -98,32 +110,13 @@ df2 <- df1 |>
     situacion_final == "Y" ~ "Retirado",
     situacion_final == "T" ~ "Trasladado",
     situacion_final == "" ~ "Sin informacion"
-  ),
-  nivel_curso = case_when(
-    nivel_enseñanza == 2 & curso == 1 ~ "1° Básico",
-      nivel_enseñanza == 2 & curso == 2 ~ "2° Básico",
-      nivel_enseñanza == 2 & curso == 3 ~ "3° Básico",
-      nivel_enseñanza == 2 & curso == 4 ~ "4° Básico",
-      nivel_enseñanza == 2 & curso == 5 ~ "5° Básico",
-      nivel_enseñanza == 2 & curso == 6 ~ "6° Básico",
-      nivel_enseñanza == 2 & curso == 7 ~ "7° Básico",
-      nivel_enseñanza == 2 & curso == 8 ~ "8° Básico",
-
-      nivel_enseñanza == 5 ~ paste(curso, "° Medio HC"),
-      nivel_enseñanza == 7 ~ paste(curso, "° Medio TP"),
-
-      nivel_enseñanza == 3 ~ "Adultos Básica",
-      nivel_enseñanza == 6 ~ "Adultos Media HC",
-      nivel_enseñanza == 8 ~ "Adultos Media TP",
-
-      nivel_enseñanza == 4 ~ "Educación Especial",
-
-      TRUE ~ "Otro / Sin info"
-  ),
-  nivel_curso = factor(nivel_curso),
-  )
+    )
+  ) |> 
+  select("region", "comuna", "rural_urbano", "tipo_dependencia", "nivel_curso", "genero", "promedio", "porc_asistencia", "situacion_final")
 
 head(df2)
+
+levels(df2$nivel_curso)
 
 ```
 
