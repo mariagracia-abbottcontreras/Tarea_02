@@ -2,6 +2,8 @@
 title: "Tarea_02"
 output: html_document
 date: "2025-11-10"
+editor_options: 
+  chunk_output_type: console
 ---
 
 # 0. Cargar librerías
@@ -13,12 +15,15 @@ library(stringi)
 library(knitr)
 library(kableExtra)
 library(ggplot2)
+library(forcats)
 
 ```
 
 
 
-# 1. Importar base de datos
+# 1. Base de datos
+## 1.1  Importar base de datos
+
 ```{r}
 df0 <- read_csv2(
   file = "../00_data/20250212_Rendimiento_2024_20250131_WEB.csv",
@@ -32,7 +37,7 @@ df0 <- read_csv2(
 - Nos aseguramos con la variable `MRUN`y la función`distinct`que solamente exista una observación por estudiante. Es decir, eliminamos los duplicados.
 
 
-# 2. Limpiar y cambiar nombres variables y formatos textos
+## 1.2. Limpiar y cambiar nombres variables y formatos textos
 
 ```{r}
 janitor::clean_names(df0)
@@ -66,7 +71,7 @@ head(df1)
 
 ```
 
-# 3. Cambiar códigos de observaciones
+## 1.3. Cambiar códigos de observaciones
 ```{r}
 df2 <- df1 |> 
   mutate(
@@ -116,38 +121,16 @@ df2 <- df1 |>
 
 head(df2)
 
-levels(df2$nivel_curso)
+write.csv(df2, "../00_data/rendimiento_2024_final.csv", row.names = FALSE)
 
 ```
 
 
-# Crear variable de Tipo de Media: HC y TP
-```{r}
-df3 <- df2 |> 
-  mutate(
-    curso_media = case_when(
-      nivel_enseñanza %in% c(5, 6) ~ paste0(curso, "° Medio HC"),
-      nivel_enseñanza %in% c(7, 8) ~ paste0(curso, "° Medio TP"),
-      TRUE ~ NA_character_
-    )
-  ) %>%
-  
-  # Filtrar solo Media (HC y TP)
-  filter(!is.na(curso_media)) %>%
-  count(curso_media) |> 
-  # Ordenar cursos
-  mutate(
-    curso_media = factor(curso_media,
-      levels = c("1° Medio HC", "1° Medio TP",
-                 "2° Medio HC", "2° Medio TP",
-                 "3° Medio HC", "3° Medio TP",
-                 "4° Medio HC", "4° Medio TP"))
-  )
+# 2. Análisis de datos
 
-head(df3)
-```
+## 2.1 Situación final con indicador de traslado según tipo de dependencia administrativa
 
-# Otra tabla de frecuencia 
+### 2.1.1 Tabla de frecuencias
 
 ```{r}
 sit_fin_dep <- df2 |> 
@@ -156,6 +139,9 @@ sit_fin_dep <- df2 |>
   mutate(n_total = sum(n),
          porcentaje = round(n / sum(n) * 100, 2)) |> 
   ungroup() |> 
+  select(tipo_dependencia, situacion_final, n, porcentaje) |> 
+  arrange(tipo_dependencia, porcentaje) |> 
+  mutate(situacion_final = factor(situacion_final, levels = unique(situacion_final))) |> 
   select(tipo_dependencia, situacion_final, n, porcentaje)
 
 
@@ -166,7 +152,9 @@ kable(sit_fin_dep,
   pack_rows(index = table(fct_inorder(sit_fin_dep$tipo_dependencia)), latex_gap_space = "0.5em")
 
 ```
-# Gráfico
+
+### 2.1.2  Gráfico
+
 ```{r}
 ggplot(sit_fin_dep, aes(x = tipo_dependencia, y = porcentaje, fill = situacion_final)) +
   geom_col(position = "fill", width = 0.7) +
@@ -193,10 +181,16 @@ ggplot(sit_fin_dep, aes(x = tipo_dependencia, y = porcentaje, fill = situacion_f
     axis.text.x = element_text(angle = 45, hjust = 1),
     legend.position = "right"
   )
+
+ggsave("../02_output/situacion_final_tipo_dependencia_plot.png",
+       width = 10, height = 6)
+
 ```
 
 
-# Tablas de frecuencia
+# Cantidad de establecimientos según dependencia 
+
+### 2.1.1 Tablas de frecuencia
 
 ```{r}
 df2 %>%
@@ -206,7 +200,7 @@ df2 %>%
   kable(col.names = c("Tipo de Establecimiento según Dependencia", "Total", "%"))
 ```
 
-# Otra tabla de frecuencias
+# Cantidad de estudiantes por curso (tabla de frecuencias)
 ```{r}
 df2 %>%
   count(nivel_curso, name = "Total") %>%
@@ -218,46 +212,69 @@ df2 %>%
 
 # Otra tabla de frecuencia
 ```{r}
+df3 <- df2 |> 
+   mutate(
+    curso = case_when(
+      grepl("Medio", nivel_curso) ~ sub(" (HC|TP)$", "", nivel_curso),  # ejemplo: "1° Medio HC" → "1° Medio"
+      TRUE ~ nivel_curso
+    ),
+    tipo = case_when(
+      grepl("HC", nivel_curso) ~ "HC",
+      grepl("TP", nivel_curso) ~ "TP",
+      TRUE ~ "Básico"
+    )
+  )
+
 tabla_frec <- df3 %>%
-  count(curso_media) %>%
+  filter(tipo %in% c("HC", "TP")) %>%   # solo cursos medios comparables
+  count(curso, tipo) %>%
+  group_by(curso) %>%
   mutate(
     porcentaje = round(n / sum(n) * 100, 1)
   ) %>%
-  arrange(curso_media)
+  ungroup() %>%
+  arrange(curso, tipo)
 
 kable(tabla_frec,
-      col.names = c("Curso", "N", "%"),
-      caption = "Distribución de estudiantes por curso") %>%
+      col.names = c("Curso", "Tipo", "N", "%"),
+      caption = "Distribución de estudiantes por curso y tipo (HC vs TP)") %>%
   kable_styling(bootstrap_options = c("striped", "hover"))
+
 
 ```
 
 # Gráfico
 
 ```{r}
-graf_HC_TP_N <- ggplot(df3, aes(x = curso_media, y = n, fill = curso_media)) + 
-  geom_col(width = 0.5) + 
-  geom_text(aes(label = scales::comma(n)),
-            vjust = -0.5, size = 4, fontface = "bold") +
+
+graf_HC_TP_N <- ggplot(tabla_frec, aes(x = curso, y = n, fill = tipo)) + 
+  geom_col(position = "dodge", width = 0.6) + 
+  geom_text(
+    aes(label = scales::comma(n)),
+    position = position_dodge(width = 0.6),
+    vjust = -0.3,
+    size = 4,
+    fontface = "bold"
+  ) +
   scale_fill_manual(values = c(
-    "1° Medio HC" = "lightgreen", "2° Medio HC" = "lightgreen",
-    "3° Medio HC" = "lightgreen", "4° Medio HC" = "lightgreen",
-    "1° Medio TP" = "orange", "2° Medio TP" = "orange",
-    "3° Medio TP" = "orange", "4° Medio TP" = "orange"
-  )) + 
+    "HC" = "lightgreen",
+    "TP" = "orange"
+  )) +
   labs(
-    title = "Distribución de estudiantes en Enseñanza Media por curso y tipo (2024)", 
+    title = "Distribución de estudiantes en Enseñanza Media por curso y tipo (2024)",
     x = "Curso",
     y = "Número de estudiantes",
+    fill = "Tipo",
     caption = "Elaboración propia con datos públicos del Centro de Estudios del Ministerio de Educación de Chile"
-  ) + 
-  scale_y_continuous(labels = scales::comma, expand = expansion(mult = c(0, 0.1))) +
-  theme_minimal(base_size = 8) +
+  ) +
+  scale_y_continuous(labels = scales::comma,
+                     expand = expansion(mult = c(0, 0.1))) +
+  theme_minimal(base_size = 10) +
   theme(
-    legend.position = "none",
     axis.text.x = element_text(angle = 45, hjust = 1, face = "bold"),
     plot.title = element_text(size = 16, face = "bold", hjust = 0.5)
   )
+
 
 ggsave(filename = "grafico_comparativo_media_2024_n.png", plot = graf_HC_TP_N, path = "02_output", width = 12, height = 7, dpi = 300, bg = "white")  
 
