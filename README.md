@@ -50,20 +50,24 @@ rm(rendimiento_2024_final)
 
 # 2. Análisis de datos
 
-En esta tarea se buscó realizar un análisis inicial de la base de datos presentada. Se analizaron la matrícula, el rendimiento académico y la asistencia según nivel educativo y tipo de dependencia. El estudio describe además la distribución de estudiantes por cursos y modalidades en educación media.
+En esta tarea se buscó realizar un análisis inicial de la base de datos presentada. Se analizaron la matrícula, el rendimiento académico y la asistencia según nivel educativo y tipo de dependencia. El estudio describe además la distribución de estudiantes por cursos y modalidades en educación media. Con el fin de mantener mejor el orden de este readme.md, se recomienda revisar directamente el script anteriormente señalado para conocer el paso a paso de la elaboración de los recursos presentados.
 
 ## 2.1 Cantidad de estudiantes según dependencia 
 
 En esta sección se describe la distribución de los estudiantes según el tipo de dependencia administrativa de sus establecimientos durante 2024. De esta manera, ofrece una visión general de la composición del sistema educativo, identificando que la mayoría de los estudiantes  (53,5%) asisten a un establecimiento particular subvencionado. Seguido de los establecimientos municipales que concentran el 29,6% de los estudiantes. Se da un salto de más de 20 puntos porcentuales a los establecimientos particulares que concentran solamente a un 9,1% de los escolares, seguidos de los servicios locales de educación con 6,5% y finalmente las corporaciones de administración delegada con 1,4%. Tal y como se logra apreciar en la siguiente tabla y gráfico:
 
+![Cantidad de estudiantes por dependencia tabla](02_output/distribucion_estudiantes_dependencia_2024.png)
 
+![Cantidad de estudiantes por dependencia gráfico](02_output/grafico_estudiantes_dependencia_2024.png)
 
-## 2.2 Cantidad de estudiantes por curso (tabla de frecuencia)
+## 2.2 Cantidad de estudiantes por curso 
 
 En esta sección se presenta la distribución del estudiantado chileno según su curso, permitiendo identificar que cursos son especialmente numerosos y cuales cuentan con una baja matrícula. Se releva que las tendencias son bastante similares entre todos los cursos, representando cada uno entre 6-8% del total. Puede parecer que los cursos de media tienen menor matricula pero eso es porque se presentan desagregados entre modalidad Humanista-Científica (HC) y Técnico Profesional (TP). De manera interesante, 1° Básico y 4° Medio (en su totalidad) representan el mismo porcentaje de las matrículas (6,8%). Esto se puede evidenciar en la siguiente tabla y gráfico:
 
+![Cantidad de estudiantes por curso tabla](02_output/distribucion_cursos_tabla.png)
+![Cantidad de estudiantes por curso gráfico](02_output/grafico_distribucion_nivel_curso_2024.png)
 
-## 2.3 Cantidad de estudiantes por curso según modalidad (HC o TP)
+## 2.3 Cantidad de estudiantes de media por curso según modalidad (HC o TP)
 
 Este análisis responde al deseo de comparar la matrícula de Enseñanza Media entre las modalidades HC y TP, distinguiendo cada curso de 1° a 4° Medio. A través de este se buscaba identificar tendencias de preferencia, distribución de oferta educativa y diferencias relevantes en tamaño de grupos entre ambas modalidades. 
 
@@ -71,10 +75,17 @@ De esta manera, se logra evidenciar las grandes diferencias entre la matrícula 
 
 Aún así, la diferencia entre los estudiantes que estudian una modalidad Científico-Humanista y aquellos en Técnico-Profesional es extensa. Sería interesante para un análisis posterior comparar la tendencia a lo largo de los años de esta e intentar compararla con las tendencias regionales.
 
+![Cantidad de estudiantes de media por curso según modalidad tabla](02_output/estudiantes_HC_vs_TP_tabla_2024.png)
+
+![Cantidad de estudiantes de media por curso según modalidad gráfico](02_output/grafico_estudiantes_HC_TP.png)
 
 ## 2.4 Situación final según tipo de dependencia administrativa
 
 Este análisis examina el rendimiento final de los estudiantes según dependencia administrativa, identificando diferencias en las tasas de promoción, repetición, retiro o traslado. De esta manera se releva que el tipo de dependencia con mayor tasa de promoción es el particular pagado, mientras que el de menor tasa es la corporación de administración delegada. Esta tendencia se repite de manera inversa al revisar las tasas de reprobación, teniendo la corporación de administración delegada el porcentaje más alto de sus estudiantes en aquella situación entre los distintos tipos de dependencia (6,74%).
+
+![Situación final según tipo de dependencia administrativa tabla](02_output/situación_final_dependencia_tabla.png)
+
+![Situación final según tipo de dependencia administrativa gráfico](02_output/situacion_final_tipo_dependencia_plot.png)
 
 # 3. Conclusión
 
