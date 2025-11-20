@@ -6,7 +6,17 @@ editor_options:
   chunk_output_type: inline
 ---
 
-# 0. Cargar librerías
+*Análisis de matrícula y rendimiento académico en Chile: Parte 1*
+
+# 0. Introducción
+
+Con la intención de realizar una tarea más alineada con los intereses académicos y profesionales de la autora, esta tarea tiene como objetivo realizar un análisis descriptivo inicial de la base de datos de *Rendimiento académico por estudiante 2024* del Centro de Estudios del Mineduc. Esto con el fin de caracterizar la matrícula escolar y explorar patrones relevantes según tipo de dependencia, niveles de enseñanza, modalidades de educación media y situación final de los estudiantes. 
+
+Para ello, primero se realiza un proceso de limpieza y estandarización de la base, asegurando la codificación deseada de variables y la creación de categorías analíticas necesarias. Posteriormente, se desarrollan distintos análisis de frecuencia y visualizaciones que permiten describir la composición del sistema educativo según dependencia administrativa, nivel y curso, modalidad HC/TP, y resultados finales del año escolar.
+
+
+## 0.1 Cargar librerías
+
 
 ```{r}
 library(tidyverse) #manipular datos
@@ -15,12 +25,16 @@ library(stringi) #limpiar textos
 library(gt) #generar tablas
 library(ggplot2) #generar gráficos
 library(scales) #generar gráficos
-library(forcats) #ordenar factores
 ```
 
 
-
 # 1. Base de datos
+La base de datos original que se utilizará en esta ocasión corresponde a la de "Rendimiento académico por estudiante" del año 2024. Esta se encuentra disponible en la página de los Datos Abiertos del Centro de Estudios del Mineduc (Chile). Esta se descarga en formato CSV, teniendo una codificación UTF-8 (aparentemente es importante saber este dato, por lo que lo dejo aquí). Al ser muy pesada, tristemente no me dejó adjuntarla en este repositorio, por lo que adjunto el link que permite acceder directamente a la página: https://datosabiertos.mineduc.cl/rendimiento-por-estudiante-2/
+
+Junto con la base se descargará el libro de códigos y un excel con tabulaciones de ciertos datos. Ambos se encuentran en la carpeta de data disponibles en este repositorio. La base contiene originalmente 3.568.930 observaciones (estudiantes) y 45 variables disponibles. Al filtrar en establecimientos funcionando queda en 3.568.887 observaciones. Asimismo, al eliminar los duplicados, y dejar únicamente una observación por estudiante, el número final de observaciones es de 3.329.072.
+
+Las variables utilizadas inicialmente corresponden a: `"MRUN"`, `"ESTADO_ESTAB"`, `"NOM_REG_RBD_A"`, `"NOM_COM_ALU"`, `"RURAL_RBD"`, `"COD_DEPE2"`, `"COD_ENSE2"`, `"COD_GRADO"`, `"GEN_ALU"`, `"PROM_GRAL"`, `"ASISTENCIA"`, `"SIT_FIN_R"`. Sin embargo, tanto `MRUN` como `ESTADO_ESTAB` se utilizaron unicamente para hacerl el filtro inicial, por lo que el número final son 10 variables. Al final del paso 1.2 se reemplaza la variable `curso` por `nivel_curso` construida en base a la misma y a `nivel_enseñanza`. 
+
 ## 1.1  Importar base de datos
 
 ```{r}
@@ -32,7 +46,8 @@ df0 <- read_csv2(
   filter(ESTADO_ESTAB == 1) |> 
   distinct(MRUN, .keep_all = TRUE)
 ```
-- En este paso se importó la base de datos seleccionando solo las columnas de interés. 
+
+- En este paso se importó la base de datos seleccionando solo las columnas de interés descritas anteriormente. 
 
 - Se filtraron los establecimientos en funcionamiento `(ESTADO_ESTAB == 1)`.
 
@@ -137,6 +152,8 @@ write.csv(df2, "../00_data/rendimiento_2024_final.csv", row.names = FALSE)
 
 - Se etiqueta correctamente la variable `nivel_enseñanza`
 
+- Se asegura que promedio es una variable numérica y se seleccionan las variables finales a utilizar.
+
 - Se exporta la base final limpia para realizar desde ella el análisis de datos. 
 
 ## 1.4 Importar nuevamente la base de datos
@@ -148,12 +165,19 @@ rendimiento_2024_final <- read_csv("00_data/rendimiento_2024_final.csv",
     col_types = cols(promedio = col_number(), 
         porc_asistencia = col_number()))
 
+rm(rendimiento_2024_final)
 ```
 
 
 # 2. Análisis de datos
 
+En esta tarea se buscó realizar un análisis inicial de la base de datos presentada. Se analizaron la matrícula, el rendimiento académico y la asistencia según nivel educativo y tipo de dependencia. El estudio describe además la distribución de estudiantes por cursos y modalidades en educación media.
+
 ## 2.1 Cantidad de estudiantes según dependencia 
+
+En esta sección se describe la distribución de los estudiantes según el tipo de dependencia administrativa de sus establecimientos durante 2024. De esta manera, ofrece una visión general de la composición del sistema educativo, identificando que la mayoría de los estudiantes  (53,5%) asisten a un establecimiento particular subvencionado. Seguido de los establecimientos municipales que concentran el 29,6% de los estudiantes. Se da un salto de más de 20 puntos porcentuales a los establecimientos particulares que concentran solamente a un 9,1% de los escolares, seguidos de los servicios locales de educación con 6,5% y finalmente las corporaciones de administración delegada con 1,4%. Tal y como se logra apreciar en la siguiente tabla y gráfico:
+
+A continuación, se detalla el proceso de desarrollo de estos:
 
 ### 2.1.1 Tablas de frecuencia
 
@@ -177,6 +201,9 @@ estudiantes_dep |>
   gtsave("../02_output/distribucion_estudiantes_dependencia_2024.png", vwidth = 900)
 ```
 
+- Se cuenta el número total de estudiantes por tipo de dependencia así como el porcentaje que representa cada dependencia sobre el total. Esto permite comparar los grupos y cuanta cobertura tiene entre los estudiantes.
+
+- Se ordenan de mayor a menor matrícula para luego exportar en una tabla estandarizada utilizando `gt()` ya que kable me traicionó :(.
 
 ### 2.1.2 Gráfico
 
@@ -203,9 +230,17 @@ ggplot(estudiantes_dep, aes(x = reorder(tipo_dependencia, Total), y = Total)) +
        width = 11, height = 6, dpi = 300)
 ```
 
+- Se construye un gráfico de barras horizontales al ser largos los nombres de las categorías y se incluyen sus porcentajes junto a cada barra.
 
 ## 2.2 Cantidad de estudiantes por curso (tabla de frecuencia)
+
+En esta sección se presenta la distribución del estudiantado chileno según su curso, permitiendo identificar que cursos son especialmente numerosos y cuales cuentan con una baja matrícula. Se releva que las tendencias son bastante similares entre todos los cursos, representando cada uno entre 6-8% del total. Puede parecer que los cursos de media tienen menor matricula pero eso es porque se presentan desagregados entre modalidad Humanista-Científica (HC) y Técnico Profesional (TP). De manera interesante, 1° Básico y 4° Medio (en su totalidad) representan el mismo porcentaje de las matrículas (6,8%). Esto se puede evidenciar en la siguiente tabla y gráfico:
+
+
+A continuación se detalla su proceso de desarrollo
+
 ```{r}
+# Desarrollo objeto:
 estudiantes_curso <- rendimiento_2024_final |> 
   mutate(
     nivel_curso = fct_relevel(
@@ -216,6 +251,7 @@ estudiantes_curso <- rendimiento_2024_final |>
   count(nivel_curso, name = "Total") |> 
   mutate(`Porcentaje` = round(Total / sum(Total) * 100, 1))
  
+# Desarrollo tabla:
 estudiantes_curso|> 
    gt() |> 
   tab_header(title = "Distribución de estudiantes por nivel/curso",
@@ -226,6 +262,10 @@ estudiantes_curso|>
   gtsave("../02_output/distribucion_cursos_tabla.png")
 
 ```
+
+- Se reordena la variable de `nivel_curso` porque R no me la ordenaba de la manera que quería así que se tuvo que hacer manualmente. 
+
+- Se cuentan los estudiantes por curso y se calcula su porcentaje, para luego generar una tabla con `gt()`.
 
 
 ### 2.2.1 Gráfico
@@ -253,8 +293,17 @@ ggsave("../02_output/grafico_distribucion_nivel_curso_2024.png",
 
 ```
 
+- Nuevamente, se utiliza un gráfico de barras horizontales dada la gran cantidad de categorías. 
+
+- Eje X permite evidenciar la cantidad de estudiantes, mientras que las etiquetas muestran los porcentajes correspondientes. Esto facilita la interpretación de ambos niveles.
 
 ## 2.3 Cantidad de estudiantes por curso según modalidad (HC o TP)
+
+Este análisis responde al deseo de comparar la matrícula de Enseñanza Media entre las modalidades HC y TP, distinguiendo cada curso de 1° a 4° Medio. A través de este se buscaba identificar tendencias de preferencia, distribución de oferta educativa y diferencias relevantes en tamaño de grupos entre ambas modalidades. 
+
+De esta manera, se logra evidenciar las grandes diferencias entre la matrícula de estudiantes en las distintas modalidades, superando con creces la HC a la TP. La brecha es mayor en 1° y 2° medio (aproximadamente 70 puntos porcentuales) que en 3° y 4° medio (40,6 pp y 30 pp respectivamente). Esto tiene sentido al enfocarse la mayor oferta educativa de TP en estos dos cursos, siendo todavía escasos e inusuales los establecimientos que ofrecen TP desde 1° Medio. 
+
+Aún así, la diferencia entre los estudiantes que estudian una modalidad Científico-Humanista y aquellos en Técnico-Profesional es extensa. Sería interesante para un análisis posterior comparar la tendencia a lo largo de los años de esta e intentar compararla con las tendencias regionales.
 
 ```{r}
 estudiantes_HC_TP <- rendimiento_2024_final |> 
@@ -272,6 +321,9 @@ estudiantes_HC_TP <- rendimiento_2024_final |>
   select(Curso = curso, Modalidad = modalidad, `N estudiantes` = n_estudiantes, `Porcentaje (%)` = porcentaje)
 ```
 
+- En esta sección se preparaon los datos, filtrando en primer lugar sólo los cursos de Enseñanza Media para luego separarlos en las variables "curso" y "modalidad" con el fin de compararlos más facilmente en la tabla y el gráfico.
+
+- Se cuentan los estudiantes por curso y modalidad, calculando también sus porcentajes. Finalmente se reordena el nivel de los cursos para garantizar que se ordenen de la forma que la autora quiere. 
 
 ### 2.3.1 Tabla comparativa
 
@@ -293,6 +345,8 @@ fmt_number(
   ) |> 
   gtsave("../02_output/estudiantes_HC_vs_TP_tabla_2024.png")
 ```
+
+- Se genera la tabla comparativa con gt().
 
 ### 2.3.2 Gráfico
 
@@ -320,9 +374,11 @@ ggsave("../02_output/grafico_estudiantes_HC_TP.png",
 
 ```
 
-
+- Clásico gráfico de barras que permite comparar cada curso según su modalidad (destacada en colores distintos). Para facilitar un análisis completo se incluyen los números absolutos sobre las barras y los porcentajes dentro de ellas.
 
 ## 2.4 Situación final según tipo de dependencia administrativa
+
+Este análisis examina el rendimiento final de los estudiantes según dependencia administrativa, identificando diferencias en las tasas de promoción, repetición, retiro o traslado. De esta manera se releva que el tipo de dependencia con mayor tasa de promoción es el particular pagado, mientras que el de menor tasa es la corporación de administración delegada. Esta tendencia se repite de manera inversa al revisar las tasas de reprobación, teniendo la corporación de administración delegada el porcentaje más alto de sus estudiantes en aquella situación entre los distintos tipos de dependencia (6,74%).
 
 ### 2.4.1 Tabla de frecuencias
 
@@ -352,7 +408,10 @@ sit_fin_dep |>
     column_labels.font.weight = "bold",
     table.width = pct(80)
   ) |> 
-  gtsave("../02_output/situación_final_dependencia_tabla.png")
+  gtsave("../02_output/situación_final_dependencia_tabla.png",
+    vwidth = 1200,
+    vheight = 1800, 
+    zoom = 2)
 
 
 ```
@@ -363,8 +422,6 @@ sit_fin_dep |>
 - ¡Se forma una tabla bonita!
 
 ### 2.4.2  Gráfico
-
-Mediante un gráfico de barras apiladas, se muestra de manera visual la proporción de estudiantes promovidos, reprobrados, retirados y trasladados según tipo de dependencia administrativa. 
 
 ```{r}
 ggplot(sit_fin_dep, aes(x = tipo_dependencia, y = porcentaje, fill = situacion_final)) +
@@ -398,266 +455,8 @@ ggsave("../02_output/situacion_final_tipo_dependencia_plot.png",
 
 ```
 
-## 2.5 Asistencia
+- Mediante un gráfico de barras apiladas, se muestra de manera visual la proporción de estudiantes promovidos, reprobrados, retirados y trasladados según tipo de dependencia administrativa. 
 
-```{r}
-asistencia <- rendimiento_2024_final |> 
-  group_by(nivel_enseñanza, tipo_dependencia) |> 
-  summarise(
-    prom_asistencia = round(mean(porc_asistencia, na.rm = T), 1),
-    n_estudiantes = n(),
-    .groups = "drop"
-  ) |> 
-  arrange(nivel_enseñanza, desc(prom_asistencia))
-```
+# 3. Conclusión
 
-### 2,5.1 Tabla de frecuencia
-
-```{r}
-asistencia |>
-  gt() |>
-  tab_header(title = "Promedio de asistencia por nivel y dependencia | 2024") |>
-  cols_label(
-    nivel_enseñanza = "Nivel de enseñanza",
-    tipo_dependencia = "Dependencia",
-    prom_asistencia = "Promedio asistencia (%)",
-    n_estudiantes   = "N estudiantes"
-  ) |> 
-  fmt_number(columns = `n_estudiantes`, decimals = 0, use_seps = TRUE) |>
-   gtsave("../02_output/promedio_asistencia_nivel_dependencia_2024.png")
-```
-
-### 2.5.2 Gráficos para cada nivel de enseñanza
-
-```{r}
-for (nivel_actual in unique(asistencia$nivel_enseñanza)) {
-  
-  # Nombre limpio y corto para el archivo
-  nombre_archivo <- paste0("02_output/asistencia_",
-                           str_trunc(str_replace_all(nivel_actual, "[ /]", "_"), 40),
-                           ".png")
-  
-  ggplot(asistencia |> filter(nivel_enseñanza == nivel_actual),
-         aes(x = reorder(tipo_dependencia, prom_asistencia),   # ordena de mayor a menor asistencia
-             y = prom_asistencia,
-             fill = tipo_dependencia)) +
-    geom_col(width = 0.7, alpha = 0.9) +
-    geom_text(aes(label = paste0(prom_asistencia, "%")),
-              vjust = -0.6, fontface = "bold", size = 4.5, color = "black") +
-    scale_fill_manual(values = c(
-      "municipal"                      = "#3498db",
-      "particular subvencionado"       = "#2ecc71",
-      "particular pagado"              = "#e74c3c",
-      "corporacion admin. delegada"    = "#9b59b6",
-      "servicio local de educación"    = "#f1c40f"
-    )) +
-    scale_y_continuous(limits = c(0, 100),
-                       expand = expansion(mult = c(0, 0.1))) +
-    labs(title = paste("Promedio de asistencia -", nivel_actual),
-         subtitle = "Por tipo de dependencia | Año 2024",
-         x = "",
-         y = "Porcentaje de asistencia promedio") +
-    theme_minimal(base_size = 13) +
-    theme(
-      plot.title = element_text(face = "bold", size = 15),
-      axis.text.x = element_text(angle = 45, hjust = 1),
-      legend.position = "none"   # sin leyenda porque ya está en el eje x
-    )
-  
-  # Guardamos el gráfico
-  ggsave(filename = nombre_archivo, width = 11, height = 7, dpi = 300, bg = "white")
-  
-  cat("✔ Guardado:", nombre_archivo, "\n")
-}
-```
-
-
-
-## 2.6 Promedio general de notas por nivel y dependencia 
-
-### 2.6.1 Tabla de frecuencias
-
-Se calcula el promedio académico para cada combinación nivel-dependencia. Se genera una tabla resumida.
-
-```{r}
-prom_nivel_dep <- rendimiento_2024_final |> 
-group_by(nivel_enseñanza, tipo_dependencia) %>%
-  summarise(
-    promedio = round(mean(promedio, na.rm = TRUE), 1),
-    n_estudiantes = n()
-  ) %>%
-  arrange(nivel_enseñanza, tipo_dependencia)
-
-prom_nivel_dep |> 
-  gt() |> 
-  tab_header(
-    title = "Promedio general de notas por nivel de enseñanza y tipo de dependencia"
-  ) |> 
-  cols_label(
-    # Aquí pones los nombres bonitos de las columnas (en el mismo orden que aparecen)
-    nivel_enseñanza = "Nivel de enseñanza",
-    tipo_dependencia = "Dependencia",           # cambia "dependencia" si tu columna se llama diferente
-    promedio = "Promedio general",     # cambia el nombre real de tu columna
-    n_estudiantes = "N estudiantes"                    # cambia si se llama diferente (n, N, total, etc.)
-  ) |> 
-  fmt_number(
-    columns = promedio,    # la columna del promedio
-    decimals = 1                # ajusta los decimales que quieras (1 o 2 normalmente)
-  ) |> 
-  tab_options(
-    table.font.size = 13,
-    heading.title.font.size = 14,
-    heading.title.font.weight = "bold",
-    table.width = pct(80)
-  ) |> 
-  tab_style(
-    style = cell_text(weight = "bold"),
-    locations = cells_column_labels()
-  ) |> 
-  tab_style(
-    style = list(
-      cell_fill(color = "#f2f2f2"),
-      cell_text(style = "italic")
-    ),
-    locations = cells_row_groups()   # si tienes grupos, sino puedes quitar esta línea
-  ) |> 
-  # Rayas tipo "striped" y hover (efecto al pasar el mouse)
-  opt_table_lines(extent = "none") |> 
-  opt_css(
-    css = "
-      .gt_table tbody tr:hover {background-color: #f5f5f5 !important;}
-      .gt_table tbody tr:nth-child(even) {background-color: #fafafa;}
-    "
-  ) |> 
-  gtsave("../02_output/promedio_nivel_dependencia_tabla.png")
-  
-```
-
-
-
-### 2.6.2 Gráfico
-```{r}
-graf_promedios <- ggplot(prom_nivel_dep,
-                         aes(x = nivel_enseñanza,
-                             y = promedio,
-                             fill = tipo_dependencia)) +
-  geom_col(position = "dodge", width = 0.9) +
-  geom_text(aes(label = promedio),
-            position = position_dodge(width = 0.9),
-            vjust = -0.3,
-            size = 4,
-            fontface = "bold") +
-  labs(
-    title = "Promedio general de notas por nivel de enseñanza y dependencia",
-    x = "Nivel de enseñanza",
-    y = "Promedio general",
-    fill = "Tipo de dependencia",
-    caption = "Elaboración propia con datos públicos del Centro de Estudios del Ministerio de Educación"
-  ) +
-  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
-  theme_minimal(base_size = 11) +
-  theme(
-    axis.text.x = element_text(angle = 30, hjust = 1, face = "bold"),
-    plot.title = element_text(size = 15, face = "bold", hjust = 0.5)
-  )
-
-
-ggsave(filename = "grafico_promedio_nivel_dependencia.png", plot = graf_promedios, path = "02_output", width = 12, height = 7, dpi = 300, bg = "white")  
-
-```
-
-
-## 2.7 Promedio general de notas por tramos según tipo de dependencia
-
-```{r}
-prom_tramos <- rendimiento_2024_final |> 
-  mutate(tramo_promedio = case_when(
-    promedio < 4.0                    ~ "Menor a 4.0 (Reprobado)",
-    promedio >= 4.0 & promedio <= 7.0 ~ "4.0 a 7.0 (Aprobado)",
-    is.na(promedio)                   ~ "Sin nota",
-    TRUE                              ~ "Otro"
-  )) |>
-  count(nivel_enseñanza, tipo_dependencia, tramo_promedio) |>
-  group_by(nivel_enseñanza, tipo_dependencia) |>
-  mutate(
-    total_grupo = sum(n),
-    porcentaje  = round(100 * n / total_grupo, 1)
-  ) |>
-  ungroup() |>
-  select(nivel_enseñanza, tipo_dependencia, tramo_promedio, n_estudiantes = n, porcentaje) |>
-  arrange(nivel_enseñanza, tipo_dependencia, desc(tramo_promedio))
-```
-
-### 2.7.1 Tabla de frecuencias
-
-```{r}
-prom_tramos %>%
-  gt() %>%
-  tab_header(
-    title = "Porcentaje de estudiantes según tramo de promedio por nivel y dependencia administrativa",
-    subtitle = "Año 2024"
-  ) %>%
-  cols_label(
-    nivel_enseñanza = "Nivel de enseñanza",
-    tipo_dependencia = "Dependencia",
-    tramo_promedio   = "Tramo de promedio",
-    n_estudiantes    = "N estudiantes",
-    porcentaje       = "Porcentaje"
-  ) %>%
-  grand_summary_rows(
-    columns = n_estudiantes,
-    fns = list(Total = ~sum(., na.rm = TRUE)),
-    formatter = fmt_number,
-    use_seps = TRUE
-  ) %>%
-  tab_options(table.font.size = 13) |> 
-  gtsave("../02_output/promedio_tramos_nivel_dependencia_2024.png")
-
-
-```
-
-
-### 2.7.2 Gráfico 
-
-Ahora para el gráfico, decidí hacer uno por cada nivel de enseñanza de modo que se puedan comparar los niveles de aprobación y reprobación según el tipo de dependencia. 
-
-
-```{r}
-for (nivel_actual in unique(prom_tramos$nivel_enseñanza)) #crea un loop para hacer un gráfico para cada nivel de enseñanza
-  {
-  
-  # Nombre limpio para el archivo (sin caracteres raros)
-  nombre_archivo <- paste0("02_output/grafico_tramos_",
-                           str_sub(str_replace_all(nivel_actual, " ", "_"), 1, 30),
-                           ".png")
-  
-  ggplot(prom_tramos |> filter(nivel_enseñanza == nivel_actual),
-         aes(x = tipo_dependencia, 
-             y = porcentaje, 
-             fill = fct_relevel(tramo_promedio, 
-                                "Menor a 4.0\n(Reprobado)",
-                                "4.0 – 7.0\n(Aprobado)"))) +
-    geom_col(position = "dodge", color = "white") +
-    geom_text(aes(label = paste0(round(porcentaje, 1), "%")),
-              position = position_dodge(width = 0.9),
-              vjust = -0.5, size = 3.5, fontface = "bold") +
-    scale_fill_manual(values = c("#27ae60", "#e74c3c"),
-                      name = "Tramo de promedio") +
-    labs(title = paste("Distribución de tramos de promedio -", nivel_actual),
-         subtitle = "Año 2024",
-         x = "Tipo de dependencia",
-         y = "Porcentaje de estudiantes") +
-    theme_minimal(base_size = 13) +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1),
-          plot.title = element_text(face = "bold", size = 15),
-          legend.position = "bottom") +
-    coord_cartesian(ylim = c(0, 100))
-  
-  ggsave(filename = nombre_archivo, width = 11, height = 7, dpi = 300)
-  
-  cat("✔ Guardado:", nombre_archivo, "\n") #mensaje de que salió bien
-}
-```
-
-
-
+A modo de conclusión, esta tarea permitió caracterizar clara y sistemáticamente la distribución del estudiantado chileno durante 2024 y sus principales indicadores académicos. Los análisis evidencian que la mayor parte de la matrícula se concentra en establecimientos particulares subvencionados y que las distribuciones por curso son relativamente estables. Asimismo, se observan diferencias significativas entre modalidades HC y TP, así como variaciones en la situación final de los estudiantes según dependencia administrativa. Estos resultados ofrecen un primer acercamiento cuantitativo a la estructura del sistema escolar, sentando una base sólida para análisis posteriores más específicos o comparativos. Estos, cabe recalcar, la autora tiene la intención de realizarlos en la siguiente `Tarea_03`, por lo que se invita a revisarlo en caso de querer mayor información.
