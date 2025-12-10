@@ -68,7 +68,8 @@ En esta sección se describe la distribución de los estudiantes según el tipo 
 
 En esta sección se presenta la distribución del estudiantado chileno según su curso, permitiendo identificar que cursos son especialmente numerosos y cuales cuentan con una baja matrícula. Se releva que las tendencias son bastante similares entre todos los cursos, representando cada uno entre 6-8% del total. Puede parecer que los cursos de media tienen menor matricula pero eso es porque se presentan desagregados entre modalidad Humanista-Científica (HC) y Técnico Profesional (TP). De manera interesante, 1° Básico y 4° Medio (en su totalidad) representan el mismo porcentaje de las matrículas (6,8%). Esto se puede evidenciar en la siguiente tabla y gráfico:
 
-![Cantidad de estudiantes por curso tabla](02_output/distribucion_cursos_tabla.png) ![Cantidad de estudiantes por curso gráfico](02_output/grafico_distribucion_nivel_curso_2024.png)
+![Cantidad de estudiantes por curso tabla](02_output/distribucion_cursos_tabla.png) 
+![Cantidad de estudiantes por curso gráfico](02_output/grafico_distribucion_nivel_curso_2024.png)
 
 ## 2.3 Cantidad de estudiantes de media por curso según modalidad (HC o TP)
 
